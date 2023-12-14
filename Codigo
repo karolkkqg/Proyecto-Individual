@@ -1,0 +1,108 @@
+package simulacionprocesos;
+
+import javax.swing.JLabel;
+import javax.swing.SwingUtilities;
+
+class Proceso extends Thread {
+    private String nombre;
+    private TurnoControl turnoControl;
+    private JLabel etiqueta;
+    private Animacion aux;
+    private volatile boolean ejecutar = true;
+    private JLabel mostrarP;
+    private JLabel mostrarT;
+
+    public Proceso(String nombre, TurnoControl turnoControl, JLabel etiqueta, Animacion aux, JLabel mostrarP, JLabel mostrarT) {
+        this.nombre = nombre;
+        this.turnoControl = turnoControl;
+        this.etiqueta = etiqueta;
+        this.aux = aux;
+        this.mostrarP=mostrarP;
+        this.mostrarT=mostrarT;
+    }
+
+    @Override
+    public void run() {
+        int autoA = 0;
+
+        try {
+            while (ejecutar) {
+                autoA = aux.getCarro().getLocation().x;
+
+                if (autoA < aux.getProcesador().getLocation().x-15) {
+                    moverEtiqueta(50);
+                    aux.repaint();
+                }
+
+                int turnoActual = turnoControl.obtenerTurno();
+                  
+                Thread.sleep(1000);
+                
+                if (nombre.endsWith(Integer.toString(turnoActual))) {
+                    mostrarP.setText(nombre + " iniciado.");
+
+                    TiempoDespierto tiempoDespierto = new TiempoDespierto();
+                    tiempoDespierto.start();
+
+                    tiempoDespierto.join();
+                    Thread.sleep(5000);
+                        
+                    mostrarT.setText("Tiempo activo: "+tiempoDespierto.getTiempoDespierto()+" ms");
+                        
+                    if(autoA < aux.getTope().getLocation().x-20) {
+                        moverEtiqueta(80);
+                        aux.repaint();
+                    }
+                    
+                    turnoControl.siguienteTurno();
+                        
+                    
+                    }else{
+                        Thread.sleep(3000);
+                    }
+  
+            }
+        } catch (InterruptedException e) {
+            System.out.println("Error en los turnos: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void moverEtiqueta(int distancia) {
+        SwingUtilities.invokeLater(() -> etiqueta.setLocation(etiqueta.getLocation().x + distancia, etiqueta.getLocation().y));
+    }
+
+}
+
+class TurnoControl {
+    private int turno = 1;
+
+    public int obtenerTurno() {
+        return turno;
+    }
+
+    public void siguienteTurno() {
+        turno = (turno % 2) + 1;
+    }
+}
+
+class TiempoDespierto extends Thread {
+    private int tiempoDespierto;
+
+    @Override
+    public void run() {
+        tiempoDespierto = (int) (Math.random() * 1000 + 1);
+
+        try {
+            Thread.sleep(tiempoDespierto);
+        } catch (InterruptedException e) {
+            System.out.println("Error en generar tiempo");
+            e.printStackTrace();
+        }
+
+    }
+
+    public int getTiempoDespierto() {
+        return tiempoDespierto;
+    }
+}
